@@ -70,10 +70,12 @@ def main():
         currentSession.login(userName, passWord)
     except:
         print('Error logging into account.')
-        return -1
+        return
 
-    _ = system('cls')
-    print ('\nSlect an option: ')
+    system('cls')
+
+    print ()
+    print ('Select an option: ')
     print ('0: exit.')
     print ('1: Download a single image.')
     print ('2: Download a range of bookmarks. (Current max = 30, need to fix.)')
@@ -84,17 +86,14 @@ def main():
     ans = input()
 
     if ans == '0':
-        return 0
-    
-    if ans == '1':
+        return
+    elif ans == '1':
         downloadSingleImg(currentSession)
-
-    if ans == '2':
+    elif ans == '2':
         userId = input('Enter userId: ')
         num = input('Enter the number of images to be downloaded: ')
         downloadBooksmarks(currentSession, userId, 0, num)
-
-    if ans == '3':
+    elif ans == '3':
         userId = input('Enter userId: ')
         downloadBooksmarks(currentSession, userId, 1, 0)
 
