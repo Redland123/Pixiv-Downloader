@@ -6,6 +6,7 @@ from pixivapi import Client
 from pixivapi import Size
 from pixivapi import Visibility
 from os import system
+import sys
 
 #print("Hello world")
 
@@ -70,7 +71,7 @@ def main():
         currentSession.login(userName, passWord)
     except:
         print('Error logging into account.')
-        return
+        sys.exit([-1])
 
     system('cls')
 
@@ -81,12 +82,12 @@ def main():
     print ('2: Download a range of bookmarks. (Current max = 30, need to fix.)')
     print ('3: Download all booksmarks.')
 
-    _ = system('cls')
+    system('cls')
 
     ans = input()
 
     if ans == '0':
-        return
+        sys.exit(1)
     elif ans == '1':
         downloadSingleImg(currentSession)
     elif ans == '2':
