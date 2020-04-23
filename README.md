@@ -2,7 +2,8 @@
 Simple pixiv downloader.
 
 ## Notes
--Requires: https://github.com/azuline/pixiv-api
+-Requires:  https://github.com/azuline/pixiv-api <br />
+            https://pypi.org/project/PySide2/
 
 ## Features
 -Downloads single images from image Id. <br />
