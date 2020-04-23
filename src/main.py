@@ -82,9 +82,9 @@ def main():
     print ('2: Download a range of bookmarks. (Current max = 30, need to fix.)')
     print ('3: Download all booksmarks.')
 
-    system('cls')
-
     ans = input()
+
+    system('cls')
 
     if ans == '0':
         sys.exit(1)
