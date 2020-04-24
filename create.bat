@@ -12,11 +12,11 @@ rmdir "dist" /S /Q
 ::Changes the current working directory to the src file.
 cd "%~dp0src"
 
-pyinstaller --clean --hidden-import PySide2.QtXml --distpath ../dist --workpath ../build --noconfirm --specpath ../build/spec --name pixivdownloader --windowed --onefile main.py
+pyinstaller --clean --hidden-import PySide2.QtXml --distpath ../dist --workpath ../build --noconfirm --specpath ../build/spec --name pixivdownloader --windowed main.py
 
 cd "%~dp0"
 
 rmdir "build" /S /Q
 rmdir "%~dp0src\__pycache__" /S /Q
 
-copy "%cd%\src\*.ui" "%~dp0dist" /Y
+copy "%cd%\src\*.ui" "%~dp0dist/pixivdownloader" /Y
