@@ -1,47 +1,42 @@
-#https://pixiv-api.readthedocs.io/en/latest/
-#$ pip install pixiv-api 
-
-import PySide2
 import os
 import sys
-from PySide2 import QtCore, QtWidgets, QtGui, QtUiTools
-import PySide2.QtWidgets
-import PySide2.QtUiTools
+import requests
 import pixivapi
 import qdarkstyle
-import requests
-from pathlib import Path
-from pixivapi import Client
-from pixivapi import Size
-from pixivapi import Visibility
-from os import system
 
-#print("Hello world")
+from pathlib import Path
+from functools import partial
+from pixivapi import Size, Visibility
+from PySide2 import QtCore, QtWidgets, QtGui, QtUiTools, QtWidgets, QtUiTools
+
 
 class mainWindowClass:
-    def __init__ (self):
+    def __init__(self):
         self.app = QtWidgets.QApplication(sys.argv)
         self.app.setStyleSheet(qdarkstyle.load_stylesheet_pyside2())
 
-        self.directoryPath = os.path.dirname(__file__) 
-        windowPath = os.path.join(self.directoryPath, 'mainWindow.ui')
-        ui_file = QtCore.QFile(windowPath)
-        ui_file.open(QtCore.QFile.ReadOnly)
+        self.cDir = os.path.dirname(__file__)
+        self.uiPath = os.path.join(self.cDir, 'mainWindow.ui')
+        self.cDownloadPath = ''
+
+        self.visibilityMode = pixivapi.Visibility.PUBLIC
+
+        # Opens the uiFile in readOnly mode
+        uiFile = QtCore.QFile(self.uiPath)
+        uiFile.open(QtCore.QFile.ReadOnly)
+
+        # Creates the mainWindow and loads the uiFile into it
         loader = QtUiTools.QUiLoader()
-        self.mainWindow = loader.load(ui_file)
-        ui_file.close()
+        self.mainWindow = loader.load(uiFile)
 
-        self.currentSession = Client()
-        self.dlFldPth = 'images/'
+        self.currentSession = pixivapi.Client()
 
-    # Checks for the download folder and creates it if its not found.
-    def checkForImageFile(self):
-        if not os.path.exists(self.dlFldPth):
-            os.mkdir(self.dlFldPth)
+        #Closes uiFile
+        uiFile.close()
 
     # Shows main window inside this object
     def showMainWindow(self):
-        self.mainWindow.show() 
+        self.mainWindow.show()
 
     # Kills the application
     def close(self):
@@ -57,37 +52,54 @@ class mainWindowClass:
         self.mainWindow.allBookmarksButton.setEnabled(i)
         self.mainWindow.lineEditUserID_2.setEnabled(i)
 
+    def on_privateCheck_clicked(self):
+        if bool(self.mainWindow.privateCheck.checkState()):
+            self.visibilityMode = pixivapi.Visibility.PRIVATE
+        else:
+            self.visibilityMode = pixivapi.Visibility.PUBLIC
+
+    def on_openFileButton_clicked(self):
+        self.cDownloadPath = QtWidgets.QFileDialog.getExistingDirectory(
+            self.mainWindow, "Open Directory", self.cDir, QtWidgets.QFileDialog.ShowDirsOnly)
+        self.mainWindow.lineEditCustomPath.setText(self.cDownloadPath)
+
+    def on_checkPathButton_clicked(self, i):
+        self.cDownloadPath = self.mainWindow.lineEditCustomPath.text()
+
+        if self.cDownloadPath == '':
+            self.mainWindow.listWidget.addItem('Error, no path entered.')
+            self.mainWindow.listWidget.scrollToBottom()
+            return 'Error'
+        elif os.path.exists(self.cDownloadPath):
+            if not i:
+                self.mainWindow.listWidget.addItem('Path Exist')
+                self.mainWindow.listWidget.scrollToBottom()
+            return 'Exist'
+        else:
+            self.mainWindow.listWidget.addItem('Error, path does not exist.')
+            self.mainWindow.listWidget.scrollToBottom()
+            return 'Error'
+
     def on_logInButton_clicked(self):
         enteredUsername = self.mainWindow.lineEditUsername.text()
         enteredPassword = self.mainWindow.lineEditPassword.text()
 
         if not enteredUsername:
             self.mainWindow.listWidget.addItem('Error, no username.')
+            self.mainWindow.listWidget.scrollToBottom()
             return
 
         if not enteredPassword:
             self.mainWindow.listWidget.addItem('Error, no password.')
+            self.mainWindow.listWidget.scrollToBottom()
             return
 
         try:
             self.currentSession.login(enteredUsername, enteredPassword)
-        except (pixivapi.LoginError) as err:
-            self.mainWindow.listWidget.addItem('Error, invalid login.\n' + str(err))
-            return 
-
-        self.mainWindow.lineEditUsername.clear()
-        self.mainWindow.lineEditPassword.clear()
-
-        tmpPswStr, tmpUsrStr = "", ""
-
-        for _ in enteredUsername:
-            tmpUsrStr += '*'
-
-        for _ in enteredPassword:
-            tmpPswStr += '*'
-            
-        self.mainWindow.lineEditUsername.setText(tmpUsrStr)
-        self.mainWindow.lineEditPassword.setText(tmpPswStr)
+        except (pixivapi.LoginError):
+            self.mainWindow.listWidget.addItem('Error, invalid login.')
+            self.mainWindow.listWidget.scrollToBottom()
+            return
 
         currentID = self.currentSession.account
 
@@ -99,83 +111,119 @@ class mainWindowClass:
         self.mainWindow.listWidget_2.addItem(currentID.id)
 
         self.toggleUI(True)
-    
+
+    # Single image download
     def on_singleImageButton_clicked(self):
         enteredURL = self.mainWindow.lineEditImageUrl.text()
 
-        try:
-            splitEnteredURL = enteredURL.split(('https://www.pixiv.net/en/artworks/'))[1]
-        except (ValueError, IndexError) as err:
-            self.mainWindow.listWidget.addItem('Error getting image ID.\n' + str(err))
+        if self.on_checkPathButton_clicked(1) == 'Error':
             return
 
         try:
-            newImg = self.currentSession.fetch_illustration(int(splitEnteredURL))
-        except (pixivapi.errors.BadApiResponse, requests.RequestException) as err:
-            self.mainWindow.listWidget.addItem('Error getting image.\n' + str(err))
+            splitEnteredURL = enteredURL.split(
+                ('https://www.pixiv.net/en/artworks/'))[1]
+        except (ValueError, IndexError):
+            self.mainWindow.listWidget.addItem('Error, getting image ID.')
+            self.mainWindow.listWidget.scrollToBottom()
             return
 
-        try: 
-            newImg.download(directory=Path(self.dlFldPth), size=Size.ORIGINAL, filename=None)
+        try:
+            newImg = self.currentSession.fetch_illustration(
+                int(splitEnteredURL))
+        except (pixivapi.errors.BadApiResponse, requests.RequestException):
+            self.mainWindow.listWidget.addItem('Error getting image.')
+            self.mainWindow.listWidget.scrollToBottom()
+            return
+
+        try:
+            newImg.download(directory=Path(self.cDownloadPath),
+                            size=Size.ORIGINAL, filename=None)
             self.mainWindow.listWidget.addItem('Image downloaded.')
-        except (requests.RequestException, FileNotFoundError, PermissionError) as err:
-            self.mainWindow.listWidget.addItem('Error downloading image.\n' + str(err))
+            self.mainWindow.listWidget.scrollToBottom()
+        except (requests.RequestException, FileNotFoundError, PermissionError):
+            self.mainWindow.listWidget.addItem('Error, downloading image.')
+            self.mainWindow.listWidget.scrollToBottom()
 
         return
 
+    # Image set download
     def on_setOfImagesButton_clicked(self):
         enteredID = self.mainWindow.lineEditUserID.text()
         enteredImageCount = self.mainWindow.lineEditImageCount.text()
 
+        if self.on_checkPathButton_clicked(1) == 'Error':
+            return
+
         try:
             int(enteredImageCount)
         except:
-            self.mainWindow.listWidget.addItem('Error, ' + str(enteredImageCount) + ' is not a valid number')
+            self.mainWindow.listWidget.addItem(
+                'Error, ' + str(enteredImageCount) + ' is not a valid number')
+            self.mainWindow.listWidget.scrollToBottom()
             return
 
         try:
-            retrievedImages = self.currentSession.fetch_user_bookmarks(user_id=enteredID, visibility=Visibility.PUBLIC, max_bookmark_id=None, tag=None)
-        except (requests.RequestException, pixivapi.errors.BadApiResponse) as err:
-            self.mainWindow.listWidget.addItem('Error getting bookmarks.')
+            retrievedImages = self.currentSession.fetch_user_bookmarks(
+                user_id=enteredID, visibility=self.visibilityMode, max_bookmark_id=None, tag=None)
+        except (requests.RequestException, pixivapi.errors.BadApiResponse):
+            self.mainWindow.listWidget.addItem('Error, getting bookmarks.')
+            self.mainWindow.listWidget.scrollToBottom()
 
         if not enteredID:
-            self.mainWindow.listWidget.addItem('No ID was entered.')
+            self.mainWindow.listWidget.addItem('Error, no ID was entered.')
+            self.mainWindow.listWidget.scrollToBottom()
             return
 
-        if  int(enteredImageCount) > 30:
-            self.mainWindow.listWidget.addItem('Error, to many images. (Max 30, needs to be fixed)')
+        if int(enteredImageCount) > 30:
+            self.mainWindow.listWidget.addItem(
+                'Error, to many images. (Max 30, needs to be fixed)')
+            self.mainWindow.listWidget.scrollToBottom()
             return
 
         for i in range(int(enteredImageCount)):
             try:
                 # Index error not being caught if user does not have the given images
-                retrievedImages['illustrations'][i].download(directory=Path(self.dlFldPth), size=Size.ORIGINAL)
-                self.mainWindow.listWidget.addItem('Image downloaded.') 
-            except (requests.RequestException, FileNotFoundError, PermissionError, IndexError) as err:
-                self.mainWindow.listWidget.addItem('Error getting images.\n' + str(err))
+                retrievedImages['illustrations'][i].download(
+                    directory=Path(self.cDownloadPath), size=Size.ORIGINAL)
+                self.mainWindow.listWidget.addItem('Image downloaded.')
+                self.mainWindow.listWidget.scrollToBottom()
+            except (requests.RequestException, FileNotFoundError, PermissionError, IndexError):
+                self.mainWindow.listWidget.addItem('Error, getting images.')
+                self.mainWindow.listWidget.scrollToBottom()
 
+    # All bookmarks button
     def on_allBookmarksButton_clicked(self):
         enteredID = self.mainWindow.lineEditUserID.text()
+
+        if self.on_checkPathButton_clicked(1) == 'Error':
+            return
 
         try:
             int(enteredID)
         except:
-            self.mainWindow.listWidget.addItem('Error, ' + str(enteredID) + ' is not a valid ID')
+            self.mainWindow.listWidget.addItem(
+                'Error, ' + str(enteredID) + ' is not a valid ID')
+            self.mainWindow.listWidget.scrollToBottom()
             return
 
         try:
-            retrievedImages = self.currentSession.fetch_user_bookmarks(user_id=enteredID, visibility=Visibility.PUBLIC, max_bookmark_id=None, tag=None)
-        except (requests.RequestException, pixivapi.BadApiResponse) as err:
-            self.mainWindow.listWidget.addItem('Error getting bookmarks.\n' + str(err))
-            return 
+            retrievedImages = self.currentSession.fetch_user_bookmarks(
+                user_id=enteredID, visibility=self.visibilityMode, max_bookmark_id=None, tag=None)
+        except (requests.RequestException, pixivapi.BadApiResponse):
+            self.mainWindow.listWidget.addItem('Error, getting bookmarks.')
+            self.mainWindow.listWidget.scrollToBottom()
+            return
 
         while True:
             for currentImg in retrievedImages['illustrations']:
                 try:
-                    currentImg.download(directory=Path(self.dlFldPth), size=Size.ORIGINAL)
+                    currentImg.download(directory=Path(
+                        self.cDownloadPath), size=Size.ORIGINAL)
                     self.mainWindow.listWidget.addItem('Image downloaded.')
-                except (requests.RequestException, FileNotFoundError, PermissionError) as err:
-                    self.mainWindow.listWidget.addItem('Error downloading.\n' + str(err))
+                    self.mainWindow.listWidget.scrollToBottom()
+                except (requests.RequestException, FileNotFoundError, PermissionError):
+                    self.mainWindow.listWidget.addItem('Error, downloading.')
+                    self.mainWindow.listWidget.scrollToBottom()
                     return
 
             # Breaks the loop if a next page does not exist
@@ -184,16 +232,34 @@ class mainWindowClass:
 
             # Moves the list to the next page
             try:
-                retrievedImages = self.currentSession.fetch_user_bookmarks(enteredID, max_bookmark_id=retrievedImages['next'])
-            except (requests.RequestException, pixivapi.BadApiResponse) as err:
-                self.mainWindow.listWidget.addItem('Error getting next page.\n' + str(err))
+                retrievedImages = self.currentSession.fetch_user_bookmarks(
+                    enteredID, max_bookmark_id=retrievedImages['next'])
+            except (requests.RequestException, pixivapi.BadApiResponse):
+                self.mainWindow.listWidget.addItem('Error, getting next page.')
+                self.mainWindow.listWidget.scrollToBottom()
 
     def setUpConnections(self):
-        self.mainWindow.logInButton.clicked.connect(self.on_logInButton_clicked)
-        self.mainWindow.singleImageButton.clicked.connect(self.on_singleImageButton_clicked)
-        self.mainWindow.setOfImagesButton.clicked.connect(self.on_setOfImagesButton_clicked)
-        self.mainWindow.allBookmarksButton.clicked.connect(self.on_allBookmarksButton_clicked)
-        
+
+        self.mainWindow.logInButton.clicked.connect(
+            self.on_logInButton_clicked)
+        self.mainWindow.singleImageButton.clicked.connect(
+            self.on_singleImageButton_clicked)
+        self.mainWindow.setOfImagesButton.clicked.connect(
+            self.on_setOfImagesButton_clicked)
+        self.mainWindow.allBookmarksButton.clicked.connect(
+            self.on_allBookmarksButton_clicked)
+        self.mainWindow.privateCheck.clicked.connect(
+            self.on_privateCheck_clicked)
+        self.mainWindow.openFileButton.clicked.connect(
+            self.on_openFileButton_clicked)
+        self.mainWindow.checkPathButton.clicked.connect(
+            self.on_checkPathButton_clicked)
+        self.mainWindow.lineEditCustomPath.returnPressed.connect(
+            lambda i=1: self.on_checkPathButton_clicked(i))
+        self.mainWindow.lineEditPassword.returnPressed.connect(
+            self.on_logInButton_clicked)
+
+
 def main():
 
     mainWindow = mainWindowClass()
@@ -201,9 +267,9 @@ def main():
     mainWindow.showMainWindow()
     mainWindow.setUpConnections()
     mainWindow.toggleUI(False)
-    mainWindow.checkForImageFile()
 
     mainWindow.close()
+
 
 if __name__ == '__main__':
     main()
