@@ -10,5 +10,5 @@ Compile using Pyinstaller: <br />
 pyinstaller --clean --hidden-import PySide2.QtXml --name pixivdownloader --windowed main.py
 
 ## Features
--Single image downloads from url.
--Bulk bookmark downloads (Private or Public) from user Id.
+-Single image downloads from url.<br />
+-Bulk bookmark downloads (Private or Public) from user Id.<br />
