@@ -259,7 +259,6 @@ class mainWindowClass:
         self.mainWindow.lineEditPassword.returnPressed.connect(
             self.on_logInButton_clicked)
 
-
 def main():
 
     mainWindow = mainWindowClass()
