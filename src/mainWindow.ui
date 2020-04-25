@@ -128,7 +128,7 @@
                 <item>
                  <widget class="QLabel" name="label">
                   <property name="text">
-                   <string>Username:</string>
+                   <string>Email:</string>
                   </property>
                  </widget>
                 </item>
@@ -491,16 +491,6 @@
     </item>
    </layout>
   </widget>
-  <action name="actionSet_Download_folder">
-   <property name="text">
-    <string>Set Download folder</string>
-   </property>
-  </action>
-  <action name="actionSettings">
-   <property name="text">
-    <string>Settings</string>
-   </property>
-  </action>
  </widget>
  <tabstops>
   <tabstop>lineEditUsername</tabstop>
