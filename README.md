@@ -2,13 +2,13 @@
 Simple pixiv downloader.
 
 ## Notes
--Requires:  
+-Package dependencies:
 https://github.com/azuline/pixiv-api <br />
 https://pypi.org/project/PySide2/
 
-Inorder to compact using Pyinstaller: <br />
-pyinstaller --windowed --hidden-import PySide2.QtXml --onefile main.py
+Compile using Pyinstaller: <br />
+pyinstaller --clean --hidden-import PySide2.QtXml --name pixivdownloader --windowed main.py
 
 ## Features
--Downloads single images from image Id. <br />
--Downloads either all, or a range, of bookmarks from user Id. <br />
+-Single image downloads from url.
+-Bulk bookmark downloads (Private or Public) from user Id.
