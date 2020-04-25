@@ -2,7 +2,7 @@
 Simple pixiv downloader.
 
 ## Notes
--Package dependencies:
+-Package dependencies: <br />
 https://github.com/azuline/pixiv-api <br />
 https://pypi.org/project/PySide2/
 
