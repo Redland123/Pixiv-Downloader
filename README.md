@@ -12,3 +12,5 @@ pyinstaller --clean --hidden-import PySide2.QtXml --name pixivdownloader --windo
 ## Features
 -Single image downloads from url.<br />
 -Bulk bookmark downloads (Private or Public) from user Id.<br />
+-GUI made with Qt: <br />
+![Alt Text](https://i.imgur.com/Qty16cY.png)
