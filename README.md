@@ -1,5 +1,5 @@
 # Pixiv-Downloader
-Simple GUI tool for downloading images from pixiv.
+Simple tool for downloading images from pixiv.
 
 ## Features
 -Single image downloads from url.<br />
